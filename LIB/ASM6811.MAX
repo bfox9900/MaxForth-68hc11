@@ -1,0 +1,427 @@
+( ASM6811 FORTH style structured assembler. SEE: LOOPS.MAC )
+( Original code from New Micros; Assumed author: Randy Dumse)
+( Commented and re-formated Brian Fox)
+
+
+( COLD)
+
+
+ HEX
+( DP @ DUP . )
+
+( 5000 DP !      ( Place assembler at end of memory )
+
+( VERSION 1.9 06/01/89 )
+
+: CODE-SUB
+        [COMPILE] CODE-SUB [COMPILE] ASSEMBLER ; IMMEDIATE
+
+
+ASSEMBLER DEFINITIONS
+
+( NOTE: The VARIABLE "MODE" needs to be in ram space if this Assembler is )
+( to be eprom/rom'ed  )
+( ie: 8 CONSTANT MODE would create a variable in CPU ram space )
+
+VARIABLE MODE
+
+( MODE sets the addressing mode for the assembler )
+: #     00 MODE ! ;             ( Immediate addressing ie: a literal number)
+: DIR   10 MODE ! ;             ( Direct mode )
+: ,X    20 MODE ! ;             ( indexed to X register )
+: ,Y    120 MODE ! ;            ( indexed to Y register )
+: EXT   30 MODE ! ;             ( External addressing )
+
+
+( initialize mode variable to "external" now)
+    EXT
+
+( Addressing MODE test words...)
+: ?#            MODE @ 0= ;
+: ?DIR          MODE @ 10 = ;
+: ?,X           MODE @  20 = ;
+: ?,Y           MODE @ 120 = ;
+: ?EXT          MODE @ 30 = ;
+: MODE-LSB      MODE @ FF AND ;
+
+( Assembler error word prints our the offending definition)
+: ERROR         EXT ' ID. CFA 4A + EXECUTE ;
+
+( Compile the offset range into memory.  Aborts with error if out of range)
+: RANGE-C,
+        DUP FF00 AND
+        IF
+           HERE 1+ - DUP ABS FF00 AND    ( is it bigger that 255 )
+           IF
+                3 ERROR
+            THEN
+         THEN C, ;
+
+
+: CPU        ( single byte op-code )
+        <BUILDS C,
+
+        DOES> C@ C, EXT ;
+
+
+: PG-2-CPU            ( 18 prefix and single byte op-code )
+        <BUILDS C,
+
+        DOES> 18 C, C@ C, EXT ;
+
+: HHLL/LL,
+        ?EXT
+        IF ,
+        ELSE C,
+        THEN EXT ;
+
+
+: 2HHLL/LL,
+        ?EXT ?# OR
+        IF ,
+        ELSE C,
+        THEN EXT ;
+
+
+: MODE-ADJ, ( a n --- a )
+        ?EXT
+        IF OVER
+           FF00 AND 0=
+           IF
+              DIR
+           THEN
+        THEN MODE-LSB OR C, ;
+
+: 18,Y
+        ?,Y
+        IF
+           18 C,
+        THEN ;
+
+: SOK?
+        ?#
+        IF
+           3 ERROR
+        THEN ;
+
+: xx12-CPU
+        <BUILDS C,
+
+        DOES> 18,Y ?# ?DIR OR
+              IF
+                3 ERROR
+              THEN C@ MODE-LSB OR C, HHLL/LL, ;
+
+
+: 1112-CPU
+        <BUILDS C,
+
+        DOES> 18,Y C@ MODE-ADJ, HHLL/LL, ;
+
+: x112-CPU
+        <BUILDS C,
+
+        DOES> 18,Y SOK? C@ MODE-ADJ, HHLL/LL, ;
+
+: 2112-CPU
+        <BUILDS C,
+
+        DOES> 18,Y C@ MODE-ADJ, 2HHLL/LL, ;
+
+: (OP-DD-MM)
+        18,Y MODE-LSB
+        IF
+           C OR
+        THEN C, C, C, ;
+
+: OP-RR
+      <BUILDS C,  DOES> C@ C, RANGE-C, EXT ;
+
+: OP-DD-MM
+        <BUILDS C,  DOES> C@ (OP-DD-MM) EXT ;
+
+: OP-DD-MM-RR
+        <BUILDS C,  DOES> C@ (OP-DD-MM) RANGE-C, EXT ;
+
+: CPX,
+        ?,Y
+        IF CD C,
+        THEN 8C MODE-ADJ, 2HHLL/LL, ;
+: LDX,
+        ?,Y
+        IF CD C,
+        THEN CE MODE-ADJ, 2HHLL/LL, ;
+: STX,
+        ?,Y
+        IF CD C,
+        THEN SOK? CF MODE-ADJ,  HHLL/LL, ;
+: CPY,
+        ?,X
+        IF 1A
+        ELSE 18
+        THEN C, 8C MODE-ADJ, 2HHLL/LL, ;
+: LDY,
+        ?,X
+        IF 1A
+        ELSE 18
+        THEN C, CE MODE-ADJ, 2HHLL/LL, ;
+: STY,
+        ?,X
+        IF 1A
+        ELSE 18
+        THEN C, SOK? CF MODE-ADJ, HHLL/LL, ;
+: CPD,
+        ?,Y
+        IF CD C,
+        ELSE 1A C,
+        THEN 83 MODE-ADJ, 2HHLL/LL, ;
+
+( Define Op codes.... )
+00 CPU TEST,
+01 CPU NOP,
+02 CPU IDIV,
+03 CPU FDIV,
+04 CPU LSRD,
+05 CPU ASLD,   05 CPU LSLD,      ( LSLD is an alias)
+06 CPU TAP,
+07 CPU TPA,
+08 CPU INX,
+09 CPU DEX,
+0A CPU CLV,
+0B CPU SEV,
+0C CPU CLC,
+0D CPU SEC,
+0E CPU CLI,
+0F CPU SEI,
+10 CPU SBA,
+11 CPU CBA,
+
+12 OP-DD-MM-RR BRSET,
+13 OP-DD-MM-RR BRCLR,
+14 OP-DD-MM BSET,
+15 OP-DD-MM BCLR,
+
+16 CPU TAB,
+17 CPU TBA,
+( 18 PAGE 2 )
+19 CPU DAA,
+( 1A PAGE 3 )
+1B CPU ABA,
+( 1C BSET,
+( 1D BCLR,
+( 1E BRSET,
+( 1F BRCLR,
+
+20 OP-RR BRA,
+21 OP-RR BRN,
+22 OP-RR BHI,
+23 OP-RR BLS,
+24 OP-RR BCC,
+24 OP-RR BHS,
+25 OP-RR BCS,
+25 OP-RR BLO,
+26 OP-RR BNE,
+27 OP-RR BEQ,
+28 OP-RR BVC,
+29 OP-RR BVS,
+2A OP-RR BPL,
+2B OP-RR BMI,
+2C OP-RR BGE,
+2D OP-RR BLT,
+2E OP-RR BGT,
+2F OP-RR BLE,
+
+30 CPU TSX,
+31 CPU INS,
+32 CPU PULA,
+33 CPU PULB,
+34 CPU DES,
+35 CPU TXS,
+36 CPU PSHA,
+37 CPU PSHB,
+38 CPU PULX,
+39 CPU RTS,
+3A CPU ABX,
+3B CPU RTI,
+3C CPU PSHX,
+3D CPU MUL,
+3E CPU WAI,
+3F CPU SWI,
+40 CPU NEGA,
+( 41 NC )
+( 42 NC )
+43 CPU COMA,
+44 CPU LSRA,
+( 45 NC )
+46 CPU RORA,
+47 CPU ASRA,
+48 CPU ASLA,
+49 CPU ROLA,
+4A CPU DECA,
+( 4B NC )
+4C CPU INCA,
+4D CPU TSTA,
+( 4E NC )
+4F CPU CLRA,
+50 CPU NEGB,
+( 51 NC )
+( 52 NC )
+53 CPU COMB,
+54 CPU LSRB,
+( 55 NC )
+56 CPU RORB,
+57 CPU ASRB,
+58 CPU ASLB,
+59 CPU ROLB,
+5A CPU DECB,
+( 5B NC )
+5C CPU INCB,
+5D CPU TSTB,
+( 5E NC )
+5F CPU CLRB,
+( 60-7F )
+
+40 xx12-CPU NEG,
+43 xx12-CPU COM,
+44 xx12-CPU LSR,
+46 xx12-CPU ROR,
+47 xx12-CPU ASR,
+48 xx12-CPU ASL,
+49 xx12-CPU ROL,
+4A xx12-CPU DEC,
+4C xx12-CPU INC,
+4D xx12-CPU TST,
+4E xx12-CPU JMP,
+4F xx12-CPU CLR,
+( 80-BF )
+80 1112-CPU SUBA,
+81 1112-CPU CMPA,
+82 1112-CPU SBCA,
+83 2112-CPU SUBD,
+84 1112-CPU ANDA,
+85 1112-CPU BITA,
+86 1112-CPU LDAA,
+87 x112-CPU STAA,
+88 1112-CPU EORA,
+89 1112-CPU ADCA,
+8A 1112-CPU ORAA,
+8B 1112-CPU ADDA,
+( 8C CPX,
+8D x112-CPU JSR,
+8E 2112-CPU LDS,
+8F x112-CPU STS,
+8F CPU XGDX,
+( C0-FF )
+C0 1112-CPU SUBB,
+C1 1112-CPU CMPB,
+C2 1112-CPU SBCB,
+C3 2112-CPU ADDD,
+C4 1112-CPU ANDB,
+C5 1112-CPU BITB,
+C6 1112-CPU LDAB,
+C7 x112-CPU STAB,
+C8 1112-CPU EORB,
+C9 1112-CPU ADCB,
+CA 1112-CPU ORAB,
+CB 1112-CPU ADDB,
+CC 2112-CPU LDD,
+CD x112-CPU STD,
+( CE LDX, )
+( CF STX, )
+CF CPU STOP,
+
+08 PG-2-CPU INY,
+09 PG-2-CPU DEY,
+30 PG-2-CPU TSY,
+35 PG-2-CPU TYS,
+38 PG-2-CPU PULY,
+3A PG-2-CPU ABY,
+3C PG-2-CPU PSHY,
+
+8F PG-2-CPU XGDY,
+
+8D OP-RR BSR,
+
+
+(  **** not needed for version 3.5 )
+: ?EXEC STATE @ IF 12 ERROR THEN ;
+: ?PAIRS - IF 13 ERROR THEN ;
+
+( Define structured looping words ... PFM;  Pure F..ing Magic)
+: BEGIN,   HERE  1  ;
+: UNTIL,   ?EXEC >R 1 ?PAIRS R> C, HERE  1+ - C, ;
+: AGAIN,   20 UNTIL, ;
+
+: IF,      C,  HERE  0  C,  2  ;
+: THEN,    ?EXEC  2  ?PAIRS  HERE OVER 1+ - SWAP C! ;
+: ELSE,    2 ?PAIRS HERE 1+  0 BRA,
+           SWAP HERE OVER 1+ - SWAP  C!   2 ;
+
+( Define branching tests for IF, ..... )
+: .NOT. 1 XOR ;                    ( REVERSE ASSEMBLY TEST )
+
+20 CONSTANT .FL.
+21 CONSTANT .TR.
+22 CONSTANT .LS.
+23 CONSTANT .HI.
+24 CONSTANT .CS.
+24 CONSTANT .LO.
+25 CONSTANT .CC.
+25 CONSTANT .HS.
+26 CONSTANT .EQ.
+27 CONSTANT .NE.
+28 CONSTANT .VS.
+29 CONSTANT .VC.
+2A CONSTANT .--.
+2B CONSTANT .++.
+2C CONSTANT .LT.
+2D CONSTANT .GE.
+2E CONSTANT .LE.
+2F CONSTANT .GT.
+
+( Define bit branching instructions... )
+: BIT-BR
+        <BUILDS C,
+        DOES> C@ 18,Y MODE-LSB IF C OR THEN C, C, ; IMMEDIATE
+
+( these require 2 operands.  cc REGISTER IS NOT AFFECTED!  )
+12 BIT-BR .CLR.    ( Example:   TOP SEC .CLR.  IF,   INCB    THEN, )
+13 BIT-BR .SET.
+
+
+( Calculate and declare MaxForth system addresses to jump to.. )
+' @  CFA FE43 FE22 - + CONSTANT PUSHD
+' @  CFA FE47 FE22 - + CONSTANT NEXTSD
+' @  CFA FE47 FE22 - + CONSTANT PUT
+' @  CFA FE4A FE22 - + CONSTANT NEXT
+' @  CFA FE4C FE22 - + CONSTANT NEXT3
+' @  CFA FE50 FE22 - + CONSTANT NEXT1
+' @  CFA FE52 FE22 - + CONSTANT NEXT2
+' 1+ CFA FC97 FC7C - + CONSTANT POP
+' 1+ CFA FC93 FC7C - + CONSTANT POPTWO
+
+( Define some macros...)
+: TOP   ,Y    0  ;     (  ADDRESS THE BOTTOM OF THE STACK  *)
+: SEC   ,Y    2  ;     ( ADDRESS SECOND ITEM ON STACK  *)
+: 3RD   ,Y    4  ;     ( 3RD ITEM )
+: 4TH   ,Y    6  ;
+
+( Macros to end code words )
+: NEXT,
+     NEXT JMP,  ;
+
+: PUSHD,
+    PUSHD JMP,  ;
+
+: POP,
+     POP JMP, ;
+
+( Define addresses of the Forth VM registers... )
+0 CONSTANT W            ( "W" working register)
+2 CONSTANT IP           ( "IP"  instruction pointer)
+4 CONSTANT UP           ( "UP"  user pointer.  Points to user variable array)
+
+FORTH DEFINITIONS
+
+( DUP .  DP !
+

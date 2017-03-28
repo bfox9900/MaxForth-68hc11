@@ -1,0 +1,6 @@
+( ARRAY.MAX   FORTH integer array. RAM only 19JAN94 FOX )
+
+: ARRAY:  ( n -- )
+        <BUILDS  2* ALLOT
+
+        DOES> ( n -- ) SWAP 2* + ;

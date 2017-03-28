@@ -1,0 +1,10 @@
+( Re-link the assembler from wherever it is to the kernel )
+
+COLD
+
+FORGET TASK
+
+HEX  E6BE  ' CODE-SUB LFA !
+HEX   158 DP !
+
+

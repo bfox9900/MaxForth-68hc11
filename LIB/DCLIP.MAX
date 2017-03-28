@@ -1,0 +1,3 @@
+( 32 bit clip word )
+: DCLIP  2ROT DMIN DMAX ;
+

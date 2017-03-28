@@ -1,0 +1,181 @@
+( EEPROM PROGRAMER IN MAXFORTH )
+
+( This code creates a 16bit EEPROM programmer on the MaxForth 68hc11 board  )
+( The C! word in MaxForth seems to be slow enough to record a byte into the )
+( the EEPROM.  "!" does not work correctly.  Using the C! word we can load up)
+( EVEN and ODD bytes of a 16bit program by placing 2 EEPROMS in the board and )
+( modifying the 'E!' word to do the work of splitting the bytes and putting   )
+( them into the correct chip.  Very cool!)
+
+( This setup will use a BASE+offset method. The base is set to $2000.       )
+( This way I can cope with the addresses advancing 1/2 as fast as normal    )
+( in the 16 bit world compared to the 8 bit 6811                            )
+
+
+ 0 CONSTANT FALSE
+-1 CONSTANT TRUE
+
+
+VARIABLE BIG-ENDIAN  TRUE BIG-ENDIAN !
+VARIABLE BURN           2 BURN       !
+
+HEX
+
+: CHAR    ( -- <c>)  BL WORD 1+  C@ ;
+
+: [CHAR]  ( -- <c>)  ?COMP CHAR  [COMPILE] LITERAL ;  IMMEDIATE
+
+: BOUNDS   OVER + SWAP ;
+
+HEX
+
+2000 CONSTANT BASEADR ( offset to get to the address of the odd byte chip)
+3FFF CONSTANT ODDCHIP
+
+: SPLIT   ( N -- C C )
+    DUP 00FF AND  SWAP
+    8 0 DO 2/ LOOP  00FF AND
+    SWAP ;
+
+: WITHIN? ( n lo hi -- ? )
+        >R  1- OVER < SWAP R> 1+ < AND ;
+
+: CLIP     ( n lo hi -- n )
+        ROT MIN MAX ;
+
+: ODD?  ( n -- ?)
+        2 MOD 0> ;
+
+: ?ADR ( adr -- )
+    0 ODDCHIP WITHIN? NOT ABORT" Address not within 0..$3FFF" ;
+
+: EVEN/ODD ( adr -- adr ) ( convert to even/odd chip as needed)
+        ?ADR
+        DUP
+        ODD?
+        IF   ODDCHIP  +
+        ELSE 2/ 2000 +
+        THEN ;
+
+: EC!  ( n address -- )
+        EVEN/ODD C! ;
+
+(        BURN @  0
+(        DO
+(           2DUP C!              ( store the byte n at address )
+(           2DUP C@ =            ( check if we have recorded the number)
+(           IF                   ( if true leave the loop)
+(              LEAVE
+(           THEN
+(        LOOP
+(        2DROP ;
+
+
+: ?BIG-ENDIAN ( n -- n )         ( swap bytes if target is to be big-endian )
+     BIG-ENDIAN @
+     IF  ><
+     THEN ;
+
+
+HEX
+: E!  ( n address -- )
+        SWAP ?BIG-ENDIAN SWAP
+
+        2DUP
+        SWAP 0FF AND SWAP EC!  ( mask off lower byte and store )
+
+        SWAP >< 0FF AND  SWAP  ( reverse bytes, mask off lower byte )
+       ( n address ) 1+ EC! ;  ( store in the other chip )
+
+
+: EC@ ( addr -- c)
+        EVEN/ODD C@ ;
+
+: E@  ( address -- n )
+       DUP EC@ 100 * >R
+       1+ EC@   R> + ;
+
+
+
+
+: E?   E@ U. ;
+
+
+: EERASE ( adr n -- )
+        BOUNDS
+        DO
+           0 I EC!
+        LOOP ;
+
+: EFILL  ( adr n char -- )
+        ROT ROT
+        BOUNDS
+        DO
+           DUP I EC!
+        LOOP
+        DROP ;
+
+: EERASE16 ( adr n -- )
+        BOUNDS
+        DO
+           0 I E!
+        LOOP ;
+
+
+\ DUMP utility ************************************************
+HEX
+: .##    ( n -- )
+        SPACE  0  <# # # #> TYPE ;
+
+: .#### ( seg offset -- )
+        0 <# # # # # #> TYPE ;
+
+: .ADR ( adr -- )
+       .#### ;
+
+: .BYTES ( adr n -- )  \ ES contains the segment to use
+         BOUNDS
+         DO
+            I E@ .## SPACE
+         LOOP ;
+
+: .CELLS ( adr n -- )  \ ES contains the segment to use
+         BOUNDS
+         DO
+            I E@ .#### SPACE
+         2 +LOOP ;
+
+: .ASCII ( adr n --)    \ print ascii values or '.' for non-printable chars
+         BOUNDS           \ ES contains the segment to use
+         DO  I C@
+             DUP  BL [CHAR] ~ WITHIN? NOT
+             IF DROP
+               [CHAR] .
+             THEN EMIT
+         LOOP ;
+
+
+: EDUMP ( offset n -- )   \ DUMP 16 bit numbers from EVEN/ODD EEPROM sockets
+        BASE @ >R
+        HEX
+        ( offset n )
+        BOUNDS                              \ now 'I' will be the offset address
+        DO
+            CR I .ADR SPACE             \ print the seg:adr
+            I   010 .CELLS 2 SPACES          \ print 16 bytes of memory
+            I   010 .ASCII                \ print 16 ascii format BYTES
+        010 +LOOP                           \ increment the offset address by 16
+        CR                                  \ new line
+        R> BASE ! ;                         \ restore BASE
+DECIMAL
+
+( INSTRUCTIONS:
+( Load this lexicon into the MaxForth Board
+( Place 2 EEPROMS into U3 and U4 sockets
+( type  EPROG <FILENAME>
+( Watch the screen as On Target reads the filename word by word and saves
+( the file into the chips.
+
+
+
+

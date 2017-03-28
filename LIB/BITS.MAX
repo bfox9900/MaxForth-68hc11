@@ -1,0 +1,28 @@
+( BITS.MAX      code words to aid in bit twiddling
+
+CODE ASL  ( n #bits -- )                ( arithmetic shift left)
+        CD C, EE C, 00 C, 8C C, 00 C,
+        00 C, 27 C, 09 C, 18 C, 68 C,
+        03 C, 18 C, 69 C, 02 C, 09 C,
+        20 C, F2 C, 7E C, FC97 ,
+END-CODE
+
+CODE ASR ( adr #bits -- )                 ( arithmetic shift right)
+        CD C, EE C, 00 C, 8C C, 00 C,
+        00 C, 27 C, 09 C, 18 C, 67 C,
+        03 C, 18 C, 66 C, 02 C, 09 C,
+        20 C, F2 C, 7E C, FC97 ,
+END-CODE
+
+CODE BCLR  ( adr bitmsk -- )              ( bit clear )
+        18 C, E6 C, 01 C, CD C, EE C,
+        02 C, 53 C, E4 C, 00 C, E7 C,
+        00 C, 7E C, FC93 ,
+END-CODE
+
+CODE BSET  ( c bitmsk -- )              ( bit set )
+        18 C, E6 C, 01 C, CD C, EE C,
+        02 C, EA C, 00 C, E7 C, 00 C,
+        7E C, FC93 ,
+END-CODE
+

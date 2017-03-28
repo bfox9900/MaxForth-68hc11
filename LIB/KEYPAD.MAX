@@ -1,0 +1,70 @@
+( KEYPAD interface to NMIS-7070 keypad/LCD board 03MAY93 )
+DECIMAL
+
+( translate table for 20 keys {4X5} in versus keys out. )
+( 1st entry is 0 etc.. )
+CREATE filter
+               08 C, 48 C, BL C, 13 C,     ( BS  0  SPACE  CR)
+               49 C, 50 C, 51 C, 43 C,     ( 1   2    3    - )
+               52 C, 53 C, 54 C, 45 C,     ( 4   5    6    + )
+               55 C, 56 C, 57 C, 42 C,     ( 7   8    9    * )
+
+               65 C, 66 C, 67 C, 68 C,     ( A   B    C    D )
+
+: FILTER  ( c -- c )  filter + C@ ;
+
+HEX 8018 CONSTANT KEYPAD
+
+: ?KEYPAD ( -- ? ) KEYPAD C@ 80 AND ;
+
+: ?KPKEY  ( -- c )
+       KEYPAD C@ DUP 80 AND
+       IF  0 KEYPAD C!
+           1F AND  FILTER
+       ELSE  DROP 0
+       THEN ;
+
+: WAIT-RELEASE ( -- )
+           BEGIN
+              ?KEYPAD 0=
+           UNTIL ;
+
+: KPKEY  ( -- c )
+       0
+       BEGIN
+         DROP KEYPAD C@ DUP
+         40 AND
+       UNTIL
+       1F AND   FILTER
+        0 KEYPAD C!  ;
+
+( this hi-level sub-routine can be used to re-vector UKEY )
+( so ALL input will come from the KEYPAD )
+( CODE KPKEY
+(       CC C, ' <KPKEY> CFA ,
+(       BD C, ATO4 ,
+(       39 C,
+( END-CODE
+
+DECIMAL
+: KPXPCT ( adr n -- )
+        0
+        DO
+           KPKEY DUP BL <
+           IF  ( is it less than a space character?)
+               DUP 13 = IF ( CR)    LEAVE      THEN
+               DUP 09 = IF  SPACE  09 EMIT     THEN
+               DUP 08 = IF    ( do a backspace )
+                        R> 1- 0 MAX >R
+                        8 EMIT SPACE  8 EMIT
+                        OVER  BL SWAP  I + C!
+                        R> 1- 0 MAX >R         THEN
+               DROP
+           ELSE ( it's ascii so put it on the screen )
+                DUP EMIT
+                OVER I + C!
+           THEN
+           I SPAN !
+        LOOP
+        2DROP ;
+

@@ -1,0 +1,12 @@
+( FORTH  int & byte arrays for use with ROMmed apps.  29JUN93 FOX )
+
+FORTH DEFINITIONS
+
+( They contain their own pointer to THEIR memory space in  RAM )
+HEX
+: RAM-ARRAY: ( n  -- <name> )
+        2* BYTES    DOES> @ SWAP 2* + ;
+
+: RAM-CARRAY: ( n adr -- <name> )
+           BYTES       DOES> @ + ;
+

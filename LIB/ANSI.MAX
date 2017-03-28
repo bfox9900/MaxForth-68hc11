@@ -1,0 +1,66 @@
+( ANSI control lexicon for terminals like the VT100 etc.. )
+DECIMAL
+
+FORTH DEFINITIONS
+
+ 27 CONSTANT ESC
+
+: .PARM  0 <# ( DECIMAL) #S  #> TYPE ;
+
+: ESC[  ( -- )                             ( start control sequence)
+         ESC EMIT ." [" ;
+
+( the ANSI name for this is "CUP".. it sucks)
+: XY   ( row col -- )                          ( cursor position)
+        SWAP
+        ESC[ ( row) .PARM  ." ;" ( col)  .PARM ." H" ;
+                                                ( cursor home)
+
+: CurHOME  ( -- )
+        ESC[ ." F" ;
+
+: CurUP   ( row --)                               ( cursor up)
+        ESC[ .PARM ." A" ;
+
+: CurDOWN  ( row --)                                ( cursor down)
+        ESC[ .PARM ." B" ;
+
+: CurFOR  ( col --)                                ( cursor forward)
+        ESC[ .PARM ." C" ;
+
+: CurBACK  ( col --)                                ( cursor backward)
+        ESC[ .PARM ." D" ;
+
+: PAGE  ( -- )                                    ( erase display)
+        ESC[ ." 2J"
+        CurHOME ;
+
+: EL  ( -- )                                    ( erase line)
+        ESC[ ." K" ;
+
+1 CONSTANT BOLD     ( Attributes. )
+2 CONSTANT DIM
+3 CONSTANT ITALIC
+5 CONSTANT BLINK
+7 CONSTANT REV
+8 CONSTANT BLANK
+
+0 CONSTANT BLACK    ( Text and background colors. )
+1 CONSTANT RED
+2 CONSTANT GREEN
+3 CONSTANT YELLOW
+4 CONSTANT BLUE
+5 CONSTANT MAGNETA
+6 CONSTANT CYAN
+7 CONSTANT WHITE
+
+: ATTR   ( attribute ) ESC[ .PARM ." m" ;       ( EX:  BOLD ATTR       )
+: TEXT       ( color ) 30 + ATTR ;              ( Ex:  YELLOW TEXT     )
+: BACKGROUND ( color ) 40 + ATTR ;              ( Ex:  BLUE BACKGROUND )
+
+: SAVE-CURSOR   ESC[ ." s" ;  ( Save    cursor position )
+: REST-CURSOR   ESC[ ." u" ;  ( Restore cursor position )
+
+
+FORTH DEFINITIONS
+

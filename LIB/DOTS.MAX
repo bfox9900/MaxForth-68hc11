@@ -1,0 +1,7 @@
+
+: .PS  ( -- )
+       SP@  S0 @ 2DUP =
+       IF ." Empty stack"  2DROP
+       ELSE  2-  DO  I @  4 .R  -2 +LOOP
+       THEN ;
+

@@ -1,0 +1,85 @@
+\ interpretive control logic ........ Will Baden - EuroFORML 85
+( These words add control logic that works outside a colon
+( definition. It is not fast, but it is a magic system for
+( providing conditional compilation or execution. When used
+( with immediate constants, control can be asserted within a
+( colon definition.
+(
+( The word HAVE is used to to determine whether or not a word
+( already exists. To see what is going on here, you should think
+( about the uses of the return stack.
+(
+( Presented by Will Baden, of Costa Mesa, California, at the
+( 1985 EuroFORML conference in Germany.
+
+only forth definitions
+
+vocabulary conditional  also conditional definitions
+
+: )ELSE(        DUP 1 = IF  1-  ENDIF  ;
+: IF(           1+  ;
+: BEGIN(        1+  ;
+: )THEN         1-  ;
+: )ENDIF        1-  ;
+: )REPEAT       1-  ;
+: )UNTIL        1-  ;
+: )AGAIN        1-  ;
+: ."            ASCII " WORD DROP  ;
+: .(            [COMPILE] (  ;
+: (             [COMPILE] (  ;
+: (             [COMPILE] (  ;
+
+ONLY FORTH DEFINITIONS  ALSO CONDITIONAL  ALSO
+
+: PASSOVER      ( N -- ; LEVELS TO SKIP
+  BEGIN  BL WORD  DUP COUNT ?DUP 0=     ( CHECK INPUT EXISTS
+         IF  2DROP 2DROP  BLK @         ( ERROR IF FROM DISC
+             ABORT" UNEXPECTED END" EXIT
+         THEN
+         UPPER  ['] CONDITIONAL V-FIND  ( LOOK IN COND.
+         IF  EXECUTE ?DUP  ENDIF        ( EXECUTE IF FOUND
+  0= UNTIL  ;                           ( UNTIL LEVEL=0
+
+: ?ENOUGH       ( N --
+  DEPTH 1- <                            ( ERROR IF LESS THAN N
+  ABORT" TOO FEW ITEMS ON STACK"  ;     ( SO STOP NOW!
+ 
+
+ IF( )ELSE( )ENDIF )THEN HAVE ...... WILL BADEN - EUROFORML 85
+
+: IF(           ( FLAG --
+  1 ?ENOUGH  0=                         ( CHECK STACK, INVERT F
+  IF  1 PASSOVER  ENDIF  ;  IMMEDIATE
+
+: )ELSE(        ( --
+  1 PASSOVER  ;  IMMEDIATE              ( PASS OVER TEXT TO )END
+
+: )ENDIF  ;  IMMEDIATE                  ( -- ; MARKER
+: )THEN  ;  IMMEDIATE                   ( -- ; MARKER
+
+: HAVE          ( -- FLAG
+  BL WORD FIND NIP 0<>  ;  IMMEDIATE    ( TRUE IF WORD EXISTS
+
+: BEGIN(        ( --
+  >IN @ >R                              ( NEED >IN TO BACKTRACK
+  BEGIN  R@ >IN !  INTERPRET  AGAIN  ;  ( R-STACK DISCARDED
+                        IMMEDIATE       ( BY )WHILE( OR )UNTIL
+: )WHILE(       ( FLAG --
+  1 ?ENOUGH  0=                         ( CHECK DEPTH, INVERT F
+  IF  R> R> R> R> 2DROP 2DROP           ( DISCARD >IN & EXITS
+      1 PASSOVER                        ( PASS OVER TEXT TO )REP
+  ENDIF  ;  IMMEDIATE                   (
+
+: )REPEAT       ( -- ; EXIT INTERPRET
+  R> DROP  ;  IMMEDIATE
+
+: )UNTIL        ( N --
+  1 ?ENOUGH                             ( STACK CHECK
+  IF  R> R> R> DROP 2DROP  ENDIF        ( DISCARD >IN & EXITS
+  R> DROP  ;  IMMEDIATE                 ( EXIT INTERPRET
+
+: )AGAIN        ( N --
+  0 [COMPILE] )UNTIL ;  IMMEDIATE
+
+
+

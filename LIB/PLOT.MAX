@@ -1,0 +1,18 @@
+( PLOT.MAX   trig table test words )
+
+VARIABLE SCALE          10 SCALE !
+
+VARIABLE DC-OFFSET      0 DC-OFFSET !
+
+: SCALED ( n -- )  SCALE @ /  DC-OFFSET @ + ;
+
+: PLOT ( n -- )  CR SPACES 42 EMIT ;
+
+: WAVE
+        360 0
+        DO
+          I SIN SCALED .
+        LOOP ;
+
+
+

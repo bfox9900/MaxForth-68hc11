@@ -1,0 +1,101 @@
+( Control lexicon OPTREX LCD  panel, with vectored EMIT  08JAN95 FOX )
+DECIMAL
+
+( Implementation details:
+( -----------------------
+( data port= PORTB
+( busy line= Not used because you must READ the data port. NOT on PortB
+( strobe   = PORTD bit 7  {STRB signal from 68HC11 chip})
+( register select= PORTA bit 6
+
+FORTH DEFINITIONS
+
+DECIMAL
+
+  18 USER UEMIT                  ( EMIT user vector )
+
+  20 CONSTANT COLS               ( # of columns in the displays)
+
+  15 CONSTANT CRAWL-SPEED
+
+
+HEX
+( B004 CONSTANT PORTB
+( B000 CONSTANT PORTA
+
+2 BASE !
+: LCD-CTRL ( -- )   PORTA C@ 01000000 NOT AND  PORTA C! ;
+: LCD-DATA ( -- )   PORTA C@ 01000000 OR PORTA C!  ;
+
+( YOU M U S T remove this word if multi-tasking )
+
+HEX
+: NOOP ;
+: <LCDEMIT>  ( c --)   PORTB C!   NOOP ;
+
+CODE-SUB LCDEMIT
+       CC C, ' <LCDEMIT> CFA ,
+       BD C, ATO4 ,
+       39 C,
+END-CODE
+
+( think about these words carefully before admitting you don't get it )
+: >LCD    [ ' LCDEMIT @ ] LITERAL  UEMIT ! ;
+: >PORT   [   UEMIT @   ] LITERAL  UEMIT ! ;
+
+( special version to send ctrl codes and return to DATA mode)
+: CTRL-EMIT  ( c --)  LCD-CTRL LCDEMIT TICK LCD-DATA ;
+
+( ALL CONTROL WORDS MUST start with "LCD-DATA". This sets the "register
+( select" bit high.  To return to data input I default back to "RS" bit
+( low with the word "LCD-DATA"
+HEX
+: TAB   14 LCDEMIT ;
+: TABS  ( n -- )
+        ?DUP                            ( is N>0 )
+         IF                             ( iftrue do this loop
+            LCD-CTRL
+            ( n ) 0
+            DO
+                TAB                     ( HEX "14" is optek shift cursor
+            LOOP
+            LCD-DATA                    ( return to data mode
+         THEN ;
+
+2 BASE !
+: PAGE      00000001   CTRL-EMIT  TICK ; ( erase display & cursor home )
+: HOME      00000010   CTRL-EMIT  ;
+: CURS-OFF  00001100   CTRL-EMIT  ;
+: CURS-ON   00001111   CTRL-EMIT ;
+: SHIFT     00011000   CTRL-EMIT ;
+
+
+: CRAWL ( n )  1 MAX  0  DO  SHIFT  CRAWL-SPEED TICKS  LOOP ;
+
+
+DECIMAL
+(   This is complex but what can I do?                                )
+( METHOD: calulate how many tabs we have to move from HOME and then   )
+( shift the cursor to that position.  I use the user variable C/L     )
+( to simplify using  other LCD display sizes.)
+: XY   ( row col -- )
+    SWAP COLS 2* * SWAP COLS 1- MIN +   ( MIN limits cursor to end of line )
+    HOME  TABS NOOP ;
+
+2 BASE !
+( this routine is taken from the OPtek documents )
+: LCDRST ( -- )
+        LCD-CTRL
+        110000 LCDEMIT  TICK    ( clear                           )
+        110000 LCDEMIT  TICK    ( clear                           )
+        110000 LCDEMIT  TICK    ( clear                           )
+
+        111000 LCDEMIT          ( function set-up                  )
+        001000 LCDEMIT          ( display off                      )
+        000001 LCDEMIT          ( display on                       )
+        000111 LCDEMIT          ( mode set-up {changed bit 1 to 1} )
+        TICK
+        LCD-DATA ;              ( end initialization               )
+
+HEX
+

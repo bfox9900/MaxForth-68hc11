@@ -1,0 +1,136 @@
+( COOPTASK.ROM   cooperative multi-tasker for ROMMED apps.  21FEB94 FOX )
+( for use with V3.3 & 3.5 maxforth )
+( revision 05apr95 using faster YIELD. do not save W register )
+
+( NEEDS RAMVARS.MAX         ( BYTE, BYTES RAM-START etc...)
+
+FORTH DEFINITIONS
+HEX
+( FORTH interpreter state variables)
+(  00 CONSTANT  W                ( working register )
+  02 CONSTANT IP                ( instruction pointer )
+  04 CONSTANT UP                ( user pointer )
+
+( Misc. constants )
+ 06 CONSTANT USER0             ( the ROOT task's "user" base address )
+157 CONSTANT USIZE             ( size of user area in bytes )
+
+( ' @  CFA FE52 FE22 - + CONSTANT NEXT2 )
+' @  CFA FE4A FE22 - + CONSTANT NEXT
+
+( these user variables already exist in Maxforth but are "BEHEADED")
+DECIMAL  ( !!!! )
+  0 USER TFLAG                   ( called DNLINK in reference addendum)
+  2 USER TLINK
+  4 USER SLICE
+  6 USER RPSAVE
+(  8 USER R0                   ( *** FOR MAXFORTH V3.3 ONLY ***)
+( 46 USER VOC-LINK)
+(  58 USER EDLNK  )
+(  64 USER ASMLNK )
+ 28 USER UPAD
+106 USER CSP
+
+: !CSP    SP@  CSP ! ;
+: LOCAL   ( base uvar -- addr' )   UP @ -  + ;
+: @LINK   TLINK @ ;
+: !LINK   TLINK ! ;
+
+( This is a cooperative multi-tasking switcher
+( It should invoked when ever you want to change tasks!
+( It's totally under your control.
+( SEE: YIELD.ASM for source code
+HEX
+CODE YIELD
+        18 C, 3C C, DE C, 02 C, 3C C,
+        DE C, 04 C, AF C, 06 C, EE C,
+        02 C, EC C, 00 C, 27 C, FA C,
+        DF C, 04 C, AE C, 06 C, 38 C,
+        DF C, 02 C, 18 C, 38 C,
+        ( inline next                           )
+        DE C, 02 C,            ( LDX IP      5  )
+        08 C, 08 C,            ( INX INX     6  )
+        DF C, 02 C,            ( STX IP      5  )
+        EE C, 00 C,            ( LDX 0,X     5  )
+        DF C, 00 C,            ( STX W       5  )
+        EE C, 00 C,            ( LDX 0,X     5  )
+        6E C, 00 C,            ( JMP 0,X     3  )
+                               ( 7E C, NEXT , don't need this now)
+END-CODE
+DECIMAL
+
+( These words control a user areas return stack.
+( This keeps track of RPSAVE automatically which is used by
+( YIELD to to set the HARDWARE stack pointer of the CPU.
+
+: }RP+ ( n task -- )  SWAP NEGATE SWAP RPSAVE LOCAL +! ;
+: }RP@ ( task -- n )  RPSAVE LOCAL @ ;
+
+: }>R  ( n task -- ) SWAP OVER }RP@ !    ( push n onto user stack
+       2 SWAP }RP+ ;
+
+: }RP! ( task -- )  DUP R0 LOCAL @ 1 -  SWAP RPSAVE LOCAL ! ;
+
+: SLEEP  ( task -- )  0 SWAP TFLAG LOCAL ! ;
+: WAKE   ( task -- ) -1 SWAP TFLAG LOCAL ! ;
+
+( optional control words )
+: MYSELF    ( -- task-adr ) UP @ ;
+: STOP-TASK ( task-adr -- ) SLEEP YIELD ;
+: DREAMS ( n -- )  1 MAX  0 DO  YIELD LOOP ;
+
+( *****************************************)
+( * USER0 links to itself & wakes up      *)
+
+: INIT-MULTI    USER0 UP !  USER0 !LINK  USER0 WAKE ;
+
+INIT-MULTI
+( *****************************************)
+
+HEX
+: SET-TASK ( ip user_adr -- )    (  setup a new task to run something)
+       >R
+       R@ }RP!                        ( set internal pointer to FE )
+       NEXT            R@ }>R         ( set the program counter )
+       R@ S0 LOCAL @   R@ }>R         ( Initial value of Y reg )
+       ( ip)           R@ }>R         ( push IP )
+       -1 R> }RP+ ;                   ( STACK pointer has to be 1 byte higher)
+
+( MAKE-USER copies the default user area from Maxforth and then biases )
+( the addresses of R0, S0 , TIB  and UPAD. (user pointer to PAD)
+
+: BIAS  ( adr user-var -- )  LOCAL +! ;
+
+: MAKE-USER ( adr -- )
+       DUP USIZE ERASE        ( erase user area )
+       USER0 OVER USIZE CMOVE ( copy USER0 AREA to adr)
+
+       DUP  ( adr adr )
+       2DUP R0   BIAS         ( bias R0 to this user area)
+       2DUP S0   BIAS         ( bias S0 to this user area)
+       2DUP TIB  BIAS         ( add new base to value in new TIB )
+       2DUP UPAD BIAS         ( add new base to value in new UPAD)
+
+       @LINK                  ( get current users link )
+       OVER !LINK             ( store this user-adr in curr. user)
+       OVER TLINK LOCAL !     ( now store curr. user in this space)
+       ( task ) SLEEP         ( put the task to sleep )
+       DROP ;
+
+: CREATE-TASK: ( -- <text>)
+        THERE USIZE BYTES
+        MAKE-USER ;
+
+( RE-DEFINE the looping words to YIELD )
+
+( *** The word END in MAXFORTH is the same as UNTIL therfore..)
+( we will reserve it for use in NON-YIELDing loops for maximum speed)
+
+: LOOP    COMPILE YIELD  [COMPILE] LOOP ;       IMMEDIATE
+: +LOOP   COMPILE YIELD  [COMPILE] +LOOP ;      IMMEDIATE
+: UNTIL   COMPILE YIELD  [COMPILE] UNTIL ;      IMMEDIATE
+: REPEAT  COMPILE YIELD  [COMPILE] REPEAT ;     IMMEDIATE
+: AGAIN   COMPILE YIELD  [COMPILE] AGAIN ;      IMMEDIATE
+
+DECIMAL
+

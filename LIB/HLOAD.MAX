@@ -1,0 +1,54 @@
+( intel hex loader.                                        07AUG95 Fox )
+HEX
+
+( NEEDS STRINGS.MAX )
+( NEEDS CHAR.MAX )
+
+VARIABLE LOADBASE
+VARIABLE CHKSUM
+
+: $EXPECT ( n -- pad )
+       PAD$ 1+ SWAP
+       2DUP BLANK
+       EXPECT  SPAN @ PAD$ C!
+       PAD$ ;
+
+: WAIT-COLON
+       BEGIN                                    ( wait for ":" )
+         KEY DUP 3 = ABORT" ^C HLOAD aborted"
+         [CHAR] :  =
+       UNTIL ;
+
+: GET-WORD ( -- n ? )
+        4 $EXPECT HEX $VAL ABORT" GET-WORD conversion error" ;
+
+: GET-BYTE ( -- c )
+        2 $EXPECT HEX $VAL  ABORT" GET-BYTE conversion error"
+        >< ;
+
+: GET-LINE ( -- )
+        0 CHKSUM !
+        GET-BYTE DROP
+        GET-WORD  LOADBASE !
+(      CR ." load adr=" LOADBASE ? )
+        GET-BYTE DROP
+(       CR ." receiving a line.."  )
+        10 0
+        DO
+           GET-BYTE
+           DUP CHKSUM +!
+           DUP SPACE U.
+           LOADBASE @ I + C!
+        LOOP ;
+
+: CHKSUM@  ( -- c ) CHKSUM @ 00FF AND ;
+
+: HLOAD
+        CR ." waiting for intel hex file."
+        WAIT-COLON
+(        CR ." reading line...")
+        GET-LINE
+        GET-BYTE DUP .
+        CHKSUM@ DUP .
+        = NOT ABORT" chksum error during download" ;
+

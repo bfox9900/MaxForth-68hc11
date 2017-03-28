@@ -1,0 +1,36 @@
+( PRINTER.MAX is used to allow background printing with embedded units
+( when used with COOPTASK.MAX these words allow easy MULT-TASKING
+( of the serial port.
+
+( NEEDS "68HC11.H"  )
+( NEEDS "MKEY.MAX"  )
+
+FORTH DEFINITIONS
+DECIMAL
+(  18 USER UEMIT                  ( EMIT user vector )
+(  16 USER UKEY )
+HEX
+
+(  Put char into serial channel )  ( original version )
+( : <PEMIT> { c -- } BEGIN  SCSR C@ 80 AND  UNTIL      )
+(                   SCDR C!                     )
+(                   TICK ;     ( delay 66mS for 20 cps)
+
+: <PEMIT> ( c -- )
+        BEGIN
+            YIELD
+            SCTX?       ( This loops much faster! than before )
+        END
+        SCDR C!
+        TICK ;
+
+CODE-SUB PEMIT
+       CC C, ' <PEMIT> CFA ,
+       BD C, ATO4 ,
+       39 C,
+END-CODE
+
+( I/O re-direction word )
+: >PRINTER    [  ' PEMIT @   ] LITERAL UEMIT ! ; ( "to printer")
+
+

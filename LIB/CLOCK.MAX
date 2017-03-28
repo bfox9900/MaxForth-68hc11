@@ -1,0 +1,117 @@
+( CLOCK.MAX    access realtime clock in maxforth cpu    21DEC92 FOX)
+
+( REV 08apr93 : added mask to TIME! routine to prevent writing the)
+(               STOP  oscillator bit. { 8th bit in SEConds field)
+
+( rev: 16mAY94  Added:
+( DATE.( c c c -- )
+( TIME. ( c c c -- )
+( to improve factoring.
+
+FORTH DEFINITIONS
+
+
+HEX
+ 1FF8    CONSTANT ctrl     ( base address of real time clock with 8K RAM)
+( 3FF8     CONSTANT ctrl      ( base address of real time clock with Hi ram )
+ctrl 1 + CONSTANT sec
+ctrl 2 + CONSTANT min
+ctrl 3 + CONSTANT hr
+ctrl 4 + CONSTANT day
+ctrl 5 + CONSTANT date
+ctrl 6 + CONSTANT month
+ctrl 7 + CONSTANT yr
+
+2 BASE !
+ 10000000 CONSTANT wrtmsk
+ 01000000 CONSTANT rdmsk
+ 00100000 CONSTANT dwnmsk
+
+( BCD.MAX  )
+HEX
+: BCD>S ( bcd -- n )
+       DUP  0F AND
+       SWAP F0 AND
+       2/ 2/ 2/ 2/ 0A * + ;
+
+DECIMAL
+: S>BCD ( n -- bcd )
+       10 /MOD  2* 2* 2* 2* + ;
+
+: BCD@  ( adr -- c)   C@ BCD>S ;      ( fetches BCD # and converts it)
+
+: clkwrt ( --) wrtmsk ctrl C! ;
+: clkrd  ( --) rdmsk ctrl C! ;                       ( stop updates )
+: clkon  ( --) 0 ctrl C! ;                           ( resume updates )
+
+: DAY@  ( -- c )   clkrd day C@  07 AND clkon ;
+
+: TIME@  ( -- sec min hr)
+       clkrd
+       sec BCD@  min BCD@  hr BCD@             ( read the bytes )
+       clkon ;
+HEX
+: TIME! ( hr min sec -- )
+       clkwrt                             ( enable write-thru )
+       S>BCD 7F AND sec C!            ( prevent writing the STOP  bit)
+       S>BCD min C!
+       S>BCD hr C!                            ( store values )
+       clkon ;                                 ( disable writes )
+
+DECIMAL
+: ##  ( n -- )  0 <# # # #> TYPE ;
+: :## ( n -- )  0 <# # # 58 HOLD #> TYPE ;
+
+: TIME. ( c c c -- )  ## :## :## ;
+
+: .TIME  ( -- )   TIME@  TIME. ;
+
+
+: DATE@  ( -- date month yr)
+       clkrd                           ( stop updates )
+       date BCD@  month BCD@  yr BCD@          ( read the bytes )
+       clkon ;
+
+: DATE! ( yr month date  -- )
+       clkwrt
+       0 day C!                                ( starts the oscillator)
+       S>BCD date C!
+       S>BCD month C!
+       S>BCD yr C!                             ( store values )
+       clkon ;                                 ( disable writes )
+
+: DATE.  ( c c c -- )   ## ." /" ## ." /" ## ;
+: .DATE  ( -- )  DATE@  DATE. ;
+
+: TIME->D  ( sec min hr -- d )               ( 32bit number of seconds)
+    60 *               ( sec min min )
+    +                  ( sec min )
+    60 UM*             ( sec sec32 )
+    ROT                ( sec32 sec )
+    0                  ( sec32 sec32)
+    D+   ;             ( sec32 )
+
+( : WHEN ( hr min sec  -- )        ( waits until it's time )
+(       SWAP ROT TIME->D
+(       BEGIN
+(         2DUP
+(         TIME@ TIME->D
+(         D=
+(       UNTIL
+(       2DROP ;
+
+(  : SECONDS  ( n -- )
+(      1-  0 MAX
+(      0                          ( make 32bit )
+(      TIME@ TIME->D D+
+(      BEGIN
+(        2DUP
+(        TIME@ TIME->D
+(        D<
+(      UNTIL
+(      2DROP ;
+
+(  : 1SEC  1 SECONDS ;
+
+( : ALARM  BEGIN   7 EMIT   1000 0 DO LOOP   ?TERMINAL UNTIL ;
+

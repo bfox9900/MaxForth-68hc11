@@ -1,0 +1,10 @@
+( ANSI conditional compilation operators for MaxForth 03JUL95 Fox )
+
+HEX
+: [IF] ( n -- )
+        ( CSP!)
+        IF
+              ( BEGIN  ) BL WORD 1+ 2@  5B544845. D=  ( UNTIL)
+        THEN   ; IMMEDIATE
+
+

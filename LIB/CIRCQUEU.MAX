@@ -1,0 +1,45 @@
+( Circular byte queue for general purpose stuff  21MAR94 FOX )
+HEX
+
+FORTH DEFINITIONS
+: QUEUE: ( n -- <text>)
+    <BUILDS
+        DUP 10 MOD ABORT" Queue size must be power of 2"
+        0 ,          ( write pointer )
+        0 ,          ( read  pointer )
+        0 ,          ( byte counter  )
+        DUP 1- ,     ( mask value    )
+        ALLOT        ( data          )
+
+     DOES>  ;        ( just leave the address of this data structure)
+
+( Pointers to the Queue data structure )
+: ->HEAD ( q -- adr )      ;            ( for clarity of syntax only)
+: ->TAIL ( q -- adr ) 2+   ;
+: ->CNT  ( q -- adr ) 4 +  ;
+: ->MSK  ( q -- adr ) 6 +  ;
+: ->DATA ( q -- adr ) 8 +  ;
+
+: HEAD++ ( q -- )  DUP >R  ->HEAD @ 1+  R@ ->MSK @ AND R> ->HEAD ! ;
+: TAIL++ ( q -- )  DUP >R  ->TAIL @ 1+  R@ ->MSK @ AND R> ->TAIL ! ;
+
+: HEAD=TAIL? ( q -- )  DUP >R  @   R> ->TAIL @ = ;
+
+: CNT=MSK?   ( q -- )  DUP >R  ->CNT @ R> ->MSK @ = ;
+: ?EMPTY  ( q -- )  ->CNT @ 0=  ABORT" Queue is empty" ;
+: ?FULL   ( q -- )  CNT=MSK? ABORT" Queue is full" ;
+
+: QC@    ( q -- c )
+       DUP >R ?EMPTY
+       R@ ->CNT 1-!
+       R@ TAIL++
+       R@ ->DATA  R> ->TAIL @ +         ( [data+tail]= adr)
+       C@ ;                             ( fetch the byte )
+
+: QC!    ( c q -- )
+       DUP >R ?FULL
+       R@ ->CNT 1+!
+       R@ HEAD++
+       R@ ->DATA  R> ->HEAD @ +        ( [data+head]= adr )
+       C! ;                            ( store the byte   )
+

@@ -1,0 +1,60 @@
+( Words to help  with vectoring things in EEPROM   1993 Fox)
+
+
+HEX
+
+CODE-SUB CC0!
+        4F C,           ( CLRA )
+        06 C,           ( TAP  )
+        39 C,           ( RTS  )
+END-CODE
+
+
+: EE!  ( n adr -- )            ( store integer in EEPROM memory )
+       OVER >< OVER EEC!  1+ EEC! ;    ( put 'em in byte by byte)
+
+: INSTALL ( [ forth-word pfa ]  vector-address  -- )
+         7E OVER EEC!    ( compile JUMP intruction into 1st byte of vector
+         ( adr ) 1+  EE! ( install address of handler into next word
+         CC0! ;          ( clear condition code register
+
+( Enable/dis-able hardware interupts )
+CODE EN_INT      0E C, 7E C, FE4A ,    END-CODE
+CODE DIS_INT     0F C, 7E C, FE4A ,    END-CODE
+
+( INT: is a macro that converts a Forth word into an interrupt routine )
+: INT: ( -- <forth-word> )
+         0CC C,  '  CFA  ,         ( compile CFA of Forth word )
+         0BD C,  ATO4 ,            ( compile a jump to ATO4 kernel routine)
+         03B C,                    ( compile a return from interrupt )
+;
+
+: CRASH   ( null interrupt handler )
+         ." un-installed interrupt" ;
+
+
+( Examples using INSTALL with assembler routines:
+(  Normal FORTH     ' MY_ASM_ROUTINE @   rti_vec INSTALL
+(  ROMmed FORTH   [ ' MY__ASM_ROUTINE @ ] LITERAL rti_vec INSTALL
+
+( hi-level Forth word is first converted into an interrupt routine )
+( using INT:
+( example:
+
+( CODE CRASH_INTERRUPT
+(        INT: CRASH
+( END-CODE
+
+( Now CRASH_INTERRUPT is a new kind of word that CAN ONLY be run as an
+( interrupt.
+
+( It is really a CODE word that calls a Forth word so it can be installed
+( just like a CODE word written in assembler )
+
+(  Normal FORTH     ' CRASH_INTERRUPT @           rti_vec INSTALL
+(  ROMmed FORTH   [ ' CRASH_INTERRUPT @ ] LITERAL rti_vec INSTALL
+
+
+
+DECIMAL
+

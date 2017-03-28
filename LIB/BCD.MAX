@@ -1,0 +1,10 @@
+( BCD.MAX  FORTH word. Convert BCD byte to integer )
+HEX
+FORTH DEFINITIONS
+
+: BCD->S ( bcd -- n )
+       DUP 0F AND
+       SWAP F0 AND
+       2/ 2/ 2/ 2/  0A * + ;
+
+

@@ -1,0 +1,29 @@
+( ERRORS.MAX   used to make a compact error system  01NOV94 Fox )
+DECIMAL
+: ERRORS.MAX ;
+
+( NEEDS STRINGS.MAX
+
+10 CONSTANT max_error#              ( edit this for max number of errors
+
+: NTH$  ( $list -- $ ) 0 DO  COUNT + LOOP ;
+
+( edit this list to create your own list of errors.
+CREATE ERRORS ,"  "
+             ," Error #1"  ," #1 line 2"
+             ," Error #2"  ," #2 line 2"
+             ," Error #3"  ," #3 line 2"
+             ," Error #4"  ," #4 line 2"
+             ," Error #5"  ," #5 line 2"
+             ," Error #6"  ," #6 line 2"
+             ," Error #7"  ," #7 line 2"
+             ," Error #8"  ," #8 line 2"
+             ," Error #9"  ," #9 line 2"
+             ," Unknown error!"  ," PANIC NOW!"
+
+
+: .ERROR  ( n -- )  ERRORS  SWAP  1 MAX  max_error# MIN   NTH$ $. ;
+
+
+: .2ERR   DUP .ERROR  CR  1+ .ERROR  ;
+

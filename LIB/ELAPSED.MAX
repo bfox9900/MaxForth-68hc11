@@ -1,0 +1,16 @@
+( elapsed time calulator using 8k RAM chip with internal clock)
+DECIMAL
+93 06 29 DATE!
+
+: SEC@   TIME@ DROP DROP  1 MAX ;
+: ELAPSED   ( n -- n ) SEC@ - ABS ;
+
+: SECONDS ( n -- )
+       SEC@
+       BEGIN
+             DUP  ELAPSED  2 PICK  . . 70  SPACES CR
+             100 0 DO LOOP
+             ?TERMINAL
+       UNTIL
+       DROP DROP ;
+

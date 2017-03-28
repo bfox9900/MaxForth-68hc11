@@ -1,0 +1,23 @@
+( this setup creates an 8k Ram disk at address HEX 4000 )
+HEX
+
+4E 6 - USER UFIRST
+50 6 - USER ULIMIT
+
+72 6 - USER CYLINDER
+
+( set start of Ram disk. This is jumpered to U4 socket on my board)
+HEX 4000 CYLINDER !
+
+( set space for 2 buffers in CHIP U3 )
+HEX 37FB UFIRST !
+
+( set end of memory limit )
+HEX 3FFF ULIMIT !
+
+EMPTY-BUFFERS
+
+( A few old friends to edit the data )
+
+: CLEAR ( scr# -- )  BLOCK  B/BLK BLANK  UPDATE ;
+

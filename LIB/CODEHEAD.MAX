@@ -1,0 +1,35 @@
+( CODEHEAD    outputs machine code from memory in a compilable form)
+( copyright 1993 Brian Fox London Canada )
+
+FORTH DEFINITIONS
+
+DECIMAL
+VARIABLE OUT
+VARIABLE HEAD$  32 ALLOT
+
+: ."C,"   ."  C, " ;
+
+: ?CR     OUT @ 20 / 0> IF   CR 0 OUT !   8 SPACES   THEN ;
+: .##     0 <# # # #> TYPE ;
+: PFA'    [COMPILE] '  @ ;
+
+HEX
+: .CODE  ( pfa -- )
+          BL WORD HEAD$ OVER C@ 1+ CMOVE
+          HEX
+          0 OUT !
+          CR ." HEX"
+          CR ." CODE "  HEAD$ COUNT TYPE CR  8 SPACES
+          100                                  ( MAX code size=255 bytes)
+          OVER + SWAP
+          DO
+             I C@  DUP .##  ."C,"    4 OUT +!
+             7E =                              ( is it a JMP instruction)
+             IF  I 1+ @  4 U.R   ."  ,"
+                 LEAVE
+             THEN
+             ?CR
+          LOOP
+          CR ." END-CODE"
+          CR ." DECIMAL"
+          CR QUIT ;

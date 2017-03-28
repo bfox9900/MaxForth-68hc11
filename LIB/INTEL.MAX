@@ -1,0 +1,50 @@
+( INTEL  dump data in INTEL-HEX FORMAT )
+( *** This program is only for use with a MOTOROLA CPU !*******)
+
+( INSTRUCTIONS:                        )
+( Load this program by sending it to the new-micros computer board )
+( PLace your terminal program in the capture mode)
+( Then type in the start address, the number of bytes and the command )
+( INTEL-DUMP  ( Example:  HEX 000 800 INTEL-DUMP )
+( MAX-FORTH will then transmit the INTEL format to you!)
+
+HEX
+
+VARIABLE CHKSUM
+
+: CE   DUP A < IF 30 ELSE 37 THEN + EMIT ; ( convert and emit)
+: 2.R  FF AND 10 /MOD CE CE ;
+: 4.R  0  100 UM/MOD  2.R 2.R ;
+
+: 16'S   10 /  1+ 10 * ;        ( Force address to 16 byte boundary
+
+ 400 CONSTANT 1K
+ 800 CONSTANT 2K
+1000 CONSTANT 4K
+2000 CONSTANT 8K
+
+
+: INTEL-DUMP ( addr count -- )
+        OVER + SWAP
+        BEGIN
+                CR
+                2DUP 10 + MIN   ( make line of output upto 16bytes long)
+                SWAP
+                ." :"
+                2DUP -                  ( calc number of bytes in file)
+                DUP CHKSUM !            ( initialize the chksum )
+                2.R
+                DUP >< FF AND  OVER  FF AND +  CHKSUM +!    ( PFM!)
+                DUP 4.R
+                ." 00"
+                >R DUP R>
+                DO
+                   I C@ DUP 2.R         ( print out a byte ... )
+                            CHKSUM +!   ( ... also put it in the CHKSUM)
+                LOOP
+                CHKSUM 1+ C@ NEGATE 2.R
+                2DUP =
+        UNTIL
+        CR ." :00000001FF"  CR          ( print end of file record)
+        2DROP ;
+

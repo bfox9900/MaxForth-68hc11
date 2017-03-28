@@ -1,0 +1,6 @@
+( DWITHIN.MAX    32bit range check   04MAR94 FOX )
+
+
+: DWITHIN? ( d dlo dhi -- ? )
+       >R >R  1. D-  2OVER D<  2SWAP  R> R> 1. D+ 2SWAP D< AND ;
+

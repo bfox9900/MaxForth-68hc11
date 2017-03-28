@@ -1,0 +1,87 @@
+( KEY & EMIT interface for cooperative multi tasking  24MAR94 FOX)
+
+HEX
+   B02F CONSTANT SCDR          ( serial communication data reg.)
+   B02E CONSTANT SCSR          ( serial communication status reg.)
+
+    16 6 -  USER UKEY                    ( vector address of key routine)
+    18 6 -  USER UEMIT
+    1A 6 -  USER U?TERMINAL
+
+( added these to make the polling a little faster )
+CODE SCRX? ( -- c)             ( is serial rx. ready )
+        F6 C, SCSR ,           ( ldab scsr           )
+        C4 C, 20 C,            ( andb # 20           )
+        4F C,                  ( clra                )
+        7E C, FE43 ,           ( jmp PUSHD           )
+END-CODE
+
+CODE SCTX?  ( -- c )           ( is serial tx. empty )
+        F6 C, SCSR ,           ( ldab SCSR           )
+        C4 C,  80 C,           ( andb # 80           )
+        4F C,                  ( clra                )
+        7E C, FE43 ,           ( jmp PUSHD            )
+END-CODE
+
+CODE SCDR@ ( -- c)             ( is serial rx. ready )
+        F6 C, SCDR ,           ( ldab scsr           )
+        4F C,                  ( clra                )
+        7E C, FE43 ,           ( jmp PUSHD           )
+END-CODE
+
+( these I/O words SWITCH CONTEXT every time they execute! )
+: MKEY  ( -- c )
+        BEGIN
+            YIELD
+            SCRX?               ( code word minimizes getting status)
+        END                     ( END does not yield )
+        SCDR@ ;                 ( code word gets the data faster )
+
+: MEMIT ( c -- )                ( I slowed this down a little to    )
+        BEGIN                   ( make sure the terminal doesn't get)
+            YIELD               ( too many cycles )
+            SCTX?
+        END
+        SCDR C!                 ( after emiting a char... we yield)
+        YIELD ;
+
+( These are hi-level FORTH sub-routines. They are easier to write and  )
+( test than assembler I/O routines.  They can be called by a JSR       )
+( instruction!  Therefore they can be used to re-vector UKEY & UEMIT   )
+( so ALL input will execute a YIELD OPERATION on completion            )
+
+CODE <MKEY>
+       CC C, ' MKEY CFA ,     ( LDD ' MKEY CFA
+       BD C, ATO4 ,            ( JSR  ATO4 ( assembler to Forth converter)
+       39 C,                   ( RTS
+ END-CODE
+
+
+CODE <MEMIT>
+       CC C, ' MEMIT CFA ,     ( LDD ' MEMIT CFA
+       BD C, ATO4 ,            ( JSR  ATO4 ( assembler to Forth converter)
+       39 C,                   ( RTS
+ END-CODE
+
+( ** Think about these words carefully before admitting you don't get it **)
+
+( At compile time we FETCH the present sub-routine address of UKEY and)
+( lock it in as a literal number in this WORD definition.             )
+( Now when we execute this word it will make the value of UKEY the    )
+( RS232 port sub-routine address. )
+: <STDTERM> [  U?TERMINAL @ ] LITERAL U?TERMINAL ! ;
+
+: STD-IO ( SINGLE ) ( -I/O)
+       [  UKEY @ ] LITERAL UKEY !
+       [ UEMIT @ ] LITERAL UEMIT !
+       <STDTERM> ;
+
+( Here we set UKEY & UEMIT to the value of our new sub-routines )
+: MULTI-IO
+       [ ' <MKEY> @  ] LITERAL UKEY !
+       [ ' <MEMIT> @ ] LITERAL UEMIT !
+       <STDTERM> ;
+
+DECIMAL
+
+

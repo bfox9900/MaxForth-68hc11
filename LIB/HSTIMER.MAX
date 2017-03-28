@@ -1,0 +1,40 @@
+( HSTIMER.MAX  milli second timer using TCNT  BFox 2005 )
+HEX
+
+B00E CONSTANT TCNT
+
+CODE TCNT@
+        FC C,  TCNT ,              (  ldd TCNT  )
+        7E C,  FE43 ,              (  jmp pushd )
+END-CODE
+
+( tcnt is .5 uS free running 16 bit timer.  2000 clicks of this timer= 1MS
+DECIMAL
+1001 CONSTANT 1MS       ( don't know why it needs 1001? but it works)
+
+: 1000US
+        TCNT@
+        BEGIN
+           TCNT@ OVER -
+           1MS >
+        UNTIL
+        DROP ;
+DECIMAL
+
+VARIABLE T
+
+: TIMER-RESET  0 T ! ;
+
+: MS  ( n --) 0 DO  1000US  1 T +! LOOP ;
+
+( compatability with old code)
+: TICK ( -- ) 32 MS ;
+: TICKS ( n -- )  0  DO TICK LOOP ;
+
+: 1SEC  1000 MS ;
+
+: SECONDS 0 DO 1SEC LOOP ;
+
+: TEST   BEGIN   TCNT @ TCNT @ - .  ?TERMINAL UNTIL ;
+: FTEST   BEGIN   TCNT@ TCNT@ - .  ?TERMINAL UNTIL ;
+

@@ -1,0 +1,33 @@
+( RAMVARS.MAX   allows variables in RAM.  from TCJ mag. Matthew Mercaldo )
+( but allows code in ROM @ $2000 )
+
+HEX
+
+FORGET TASK
+
+
+
+2004 DP !
+6 48 ! ( WIDTH ! )          ( set dictionary max width to 5 chars)
+
+HERE 1F00 ERASE             ( clear the ROM space
+
+0400 CONSTANT RAM-START     ( ram must be in BATTERY ram area )
+0FFF CONSTANT RAM-LIMIT
+
+VARIABLE 'RAM            RAM-START 'RAM !
+
+( 32  6 - USER HEADERLESS
+
+: THERE  'RAM @ ;        ( like "HERE"  but  THERE )
+
+: RESET-RAM   RAM-START 'RAM ! ;
+
+: ALLOT-RAM  ( n -- )
+       'RAM +!
+       RAM-LIMIT THERE U< ABORT" OUT OF RAM SPACE!" ;
+
+: BYTES  ( n -- <name> )   THERE  CONSTANT  ALLOT-RAM ;
+: BYTE   (   -- <name> )   1 BYTES ;
+
+RESET-RAM

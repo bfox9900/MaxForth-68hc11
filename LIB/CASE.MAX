@@ -1,0 +1,37 @@
+( CASE.FIG   This is the classic Dr. Eaker CASE statement construction)
+DECIMAL
+
+ 112 6 -  USER CSP                       ( CSP is beheaded in MaxFORTH)
+
+: CASE
+       ?COMP CSP @ SP@ CSP !
+       4 ; IMMEDIATE
+
+
+: OF   4 ?PAIRS
+       COMPILE OVER
+       COMPILE =
+       COMPILE ?BRANCH
+       HERE 0 ,
+       COMPILE DROP
+       5 ;  IMMEDIATE
+
+: ENDOF
+       5 ?PAIRS
+       COMPILE BRANCH
+       HERE 0 , SWAP 2
+       [COMPILE] THEN
+       4 ; IMMEDIATE
+
+
+: ENDCASE
+       4 ?PAIRS
+       COMPILE DROP
+       BEGIN
+               SP@ CSP @ = NOT
+       WHILE
+             2 [COMPILE] THEN
+       REPEAT
+       CSP ! ; IMMEDIATE
+
+

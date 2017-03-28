@@ -1,0 +1,9 @@
+( fastfetch  how to machine code a fast fetch variable    04/14/96 20:37
+
+VARIABLE Q
+
+CODE Q@
+        FC C,      Q ,          (  ldd Q     )
+        7E C,   FE43 ,          (  jmp pushd )
+END-CODE
+

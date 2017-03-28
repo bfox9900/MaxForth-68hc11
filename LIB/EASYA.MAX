@@ -1,0 +1,45 @@
+( EASYA.MAX   a simple networking protocol for MaxForth )
+DECIMAL
+
+( the Id address 'me' could be coded as a word that gets a number from)
+( EEPROM or a set of switches on a port. )
+( In this case it is the VARIABLE UNIT# stored in battery RAM. )
+
+
+
+ 01 CONSTANT ^A
+
+VARIABLE SELECTED                  ( flag varible to tell the system)
+                                   ( that God is talking to it.  :- )
+VARIABLE UNIT#   002 UNIT# !
+
+: me  ( -- c )  UNIT# @ ;
+
+HEX
+: TX-ON  ( -- )  PORTA C@ 10 OR PORTA C! ;
+: TX-OFF ( -- )  PORTA C@ 10 NEGATE AND PORTA C! ;
+
+( just like in Forth you end communication by re-starting the interpreter)
+( loop.  In Forth it's called QUIT.                                      )
+( Here it's called ETX [end transmission]                                )
+: ETX
+        TX-OFF                  ( tri-state the RS422 TX  chip )
+(       MULTI-IO                ( enable multi-tasking I/O )
+        FALSE SELECTED !        ( we're not selected )
+        BEGIN                   ( this is the entire protocol            )
+           BEGIN
+             KEY ^A =           ( wait for ^A )
+           UNTIL
+           KEY me =             ( then check for your own ID
+        UNTIL                   ( loop until above is true              )
+        TX-ON
+        TRUE SELECTED !
+        ^A EMIT me EMIT         ( reply with ^A and my ID #             )
+        QUIT ;                  ( run the Forth interpreter             )
+                                ( now the node can interpret ANY forth  )
+                                ( word.
+
+( to end the session the host simply sends the text command ETX and )
+( the node hangs up and waits for the access sequence again.       )
+( ***********************************************************************)
+

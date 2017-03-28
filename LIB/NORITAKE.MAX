@@ -1,0 +1,79 @@
+( Lexicon for NORITAKE 2x40 display panel, vectored EMIT  04MAY94 FOX )
+DECIMAL
+
+( data port= PORTB
+( busy line= PORTA bit 0
+( strobe   = PORTD bit 7  {strobe B signal from PRU chip})
+
+
+FORTH DEFINITIONS
+
+: NORITAKE.MAX ;
+
+DECIMAL
+
+  18 USER UEMIT                  ( EMIT user vector )
+( 24 USER UC/L                   ( user var with CHARS/LINE )
+
+( ** No clipping of X & Y is included here because the VIP display software)
+( does that anyway so why waste the space in my memory?!)
+
+HEX
+( B004 CONSTANT PORTB
+( B008 CONSTANT PORTD { **PORT D was used in the first prototypes only ***})
+( B000 CONSTANT PORTA
+
+
+( Early on in the development if this lexicon we changed the busy signal)
+( over to port A bit #0.  this freed up portd for use as a keypad input)
+
+: ?BUSY ( -- ? )   PORTA C@ 01 AND ( 0> ) ;
+
+: <GASEMIT>  ( c --)
+    BEGIN
+      ?BUSY NOT          ( wait until not busy
+      ( YIELD )          ( context switch if coop. multi-tasking
+    UNTIL
+    PORTB C! ;           ( store 'c' at PORTB
+
+CODE-SUB GASEMIT
+       CC C, ' <GASEMIT> CFA ,
+       BD C, ATO4 ,
+       39 C,
+END-CODE
+
+( think about these words carefully before admitting you don't get it )
+: >GAS    [ ' GASEMIT @ ] LITERAL  UEMIT ! ;
+: >CRT    [   UEMIT @   ] LITERAL  UEMIT ! ;
+
+: GASTYPE  ( adr n -- )
+       OVER + SWAP
+       DO I C@ GASEMIT LOOP ;
+
+: esc   1B GASEMIT  ;
+: "L"   4C GASEMIT  ;
+
+: XY   ( row col -- )
+       esc
+       ( H) 48 GASEMIT                    ( CTRL code for cursor POS.)
+       SWAP 27 * +                        ( ROW * 39 + Col)
+       GASEMIT ;                          ( send the number to display )
+
+: PAGE  OE GASEMIT  ;          ( erase display & cursor home )
+: HOME  16 GASEMIT  ;
+
+: TAB-         08 GASEMIT ;
+: TAB+         09 GASEMIT ;
+: CURS-OFF     16 GASEMIT ;
+: CURS-ON      15 GASEMIT ;
+: SCROLL       12 GASEMIT ;
+: OVERWRITE    11 GASEMIT ;    ( default mode is over write )
+: GASRST       esc 49 GASEMIT ;
+: NOFLICKER    esc 53 GASEMIT ;
+: DIM          esc "L" 3F GASEMIT ;
+: NORMAL       esc "L" BF GASEMIT ;
+: BRIGHT       esc "L" F0 GASEMIT ;
+
+: ROMAN        18 GASEMIT ;
+: KATAKANA     19 GASEMIT ;
+

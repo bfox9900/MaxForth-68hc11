@@ -1,0 +1,66 @@
+( Control lexicon VIP 2x40 display panel, with vectored EMIT  23NOV93 FOX )
+DECIMAL
+( ======================INTERFACE DOCUMENTATION =========================)
+( data port= PORTB
+( busy line= PORTA bit 0
+( strobe   = PORTD bit 7  {strobe B signal from PRU chip})
+( =======================================================================)
+
+
+FORTH DEFINITIONS
+
+DECIMAL
+
+  18 USER UEMIT                  ( EMIT user vector )
+( 24 USER UC/L                   ( user var with CHARS/LINE )
+
+( ** No clipping of X & Y is included here because the VIP display software)
+( does that anyway so why waste the space in my memory?!)
+
+HEX
+( B004 CONSTANT PORTB
+( B008 CONSTANT PORTD { **PORT D was used in the first prototypes only ***})
+( B000 CONSTANT PORTA
+
+( Early on in the development if this lexicon we changed the busy signal)
+( over to port A bit #0.  this freed up portd for use as a keypad input)
+
+: ?BUSY ( -- ? )  PORTA C@ 01 AND 0> NOT  ;
+
+: <GASEMIT>  ( c --)
+    BEGIN
+      ?BUSY
+      YIELD
+    UNTIL
+    PORTB C!
+    YIELD ;                     ( remove when not needed for multi-tasking)
+
+CODE-SUB GASEMIT
+       CC C, ' <GASEMIT> CFA ,
+       BD C, ATO4 ,
+       39 C,
+END-CODE
+
+( think about these words carefully before admitting you don't get it )
+: >GAS    [ ' GASEMIT @ ] LITERAL  UEMIT ! ;
+: >PORT   [   UEMIT @   ] LITERAL  UEMIT ! ;
+
+: XY   ( row col -- )
+        1B GASEMIT                         ( CTRL code for cursor POS.)
+       SWAP 40 * +                        ( shift ROW to BIT 6 and add col)
+       GASEMIT ;                          ( send the number to display )
+
+: PAGE  15 GASEMIT  ;          ( erase display & cursor home )
+: HOME  16 GASEMIT  ;
+
+: CURS-OFF     0E GASEMIT ;
+: CURS-ON      0F GASEMIT ;
+( : BLINK:       0B GASEMIT ;
+( : ;BLINK       0C GASEMIT ;
+: SCROLL       11 GASEMIT ;
+: CRAWL        13 GASEMIT ;
+: GASRST       14 GASEMIT ;
+: DIM          1D GASEMIT ;
+: NORMAL       1E GASEMIT ;
+: BRIGHT       1F GASEMIT ;
+

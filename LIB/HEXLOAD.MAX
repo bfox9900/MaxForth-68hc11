@@ -1,0 +1,71 @@
+( intel hex loader.                                        07AUG95 Fox )
+HEX
+
+( NEEDS WITHIN.MAX )
+( NEEDS CHAR.MAX )
+
+VARIABLE LINE-LENGTH
+VARIABLE LOADBASE
+VARIABLE CHKSUM
+
+: $EXPECT  ( n -- pad )
+       PAD 1+ SWAP 2DUP BLANK
+       EXPECT  SPAN @ PAD C!
+       PAD ;
+
+: $VAL  ( adr -- n ? )             ( -1 means bad conversion )
+         DUP 0 0 ROT CONVERT SWAP DROP ROT 1+ = ;
+
+: WAIT-COLON
+       BEGIN                                    ( wait for ":" )
+         KEY DUP 3 = ABORT" ^C HLOAD aborted"
+         DUP EMIT                               ( echo it out )
+         [CHAR] :  =
+       UNTIL ;
+
+: GET-BYTE ( -- c )
+        2 $EXPECT  $VAL ABORT" bad byte" ;
+
+: GET-WORD ( -- n ? )
+        4 $EXPECT $VAL ABORT" bad word" ;
+
+: GET-LAST ( -- )
+        GET-WORD DROP
+        GET-WORD 01FF = NOT  ABORT" transfer did not end normally"
+        CR ." Transfer complete. OK" CR QUIT ;
+
+: CHKSUM@  ( -- c ) CHKSUM @ 00FF AND ;
+
+: GET-LINE ( -- )
+        HEX
+        0 CHKSUM !
+        CR ." colon: " WAIT-COLON  CR
+        CR ." LINE-LENGTH: "  GET-BYTE  LINE-LENGTH !
+
+        CR ." Address: "
+        GET-WORD  LOADBASE !
+
+        GET-BYTE                    ( control byte )
+        DUP 0=
+        IF
+           CR ." line:"
+          LINE-LENGTH @ 0
+          DO
+             GET-BYTE >< DUP . CR  ( CHKSUM +! )
+             LOADBASE @ I + C!
+          LOOP
+          CR ." Checksum: "
+          GET-BYTE ( checksum ) DROP
+
+        ELSE
+           GET-LAST
+        THEN ;
+
+
+: HLOAD
+        CR ." waiting for intel hex file..."
+        BEGIN
+
+        GET-LINE
+        AGAIN ;
+

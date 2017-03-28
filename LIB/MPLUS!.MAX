@@ -1,0 +1,5 @@
+( M+!  increment a double integer at "adr" by integer "n" )
+DECIMAL
+: M+!  ( n adr -- )  0 SWAP  DUP >R  2@ D+ R> 2! ;
+DECIMAL
+

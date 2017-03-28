@@ -1,0 +1,22 @@
+( QC.MAX is maxforth code for accessing a small byte queue 16feb95 FOX)
+HEX
+
+: QUEUE: ( n -- <text>)
+    <BUILDS
+        DUP  10 MOD ABORT" Queue size must be power of 2"
+        DUP 100 >   ABORT" Max size is 256 bytes"
+        0 C,          ( head pointer )
+        0 C,          ( tail pointer )
+        0 C,          ( byte counter ) ( un-used to date )
+        DUP 1- C,     ( mask value   )
+        ALLOT         ( data         )
+
+     DOES>  ;        ( just leave the address of this data structure)
+
+
+: QC@ ( Qadr -- c)
+       >R
+       R@ 1+  C@
+       ( tailptr ) 2+ 2+ ( tailadr ) C@ ( c)
+       R@ 2+ DUP ( cntptr cntptr) C@ 1- SWAP C!   ( )
+

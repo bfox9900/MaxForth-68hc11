@@ -1,0 +1,39 @@
+( ALARM.MAX  beeper control on PORT A bit #4 with TTY 17JUL93 FOX)
+
+
+( This simple line sets the enables PORTA bit 3 as an output )
+HEX
+
+: ENABLE-ALARM   B026 C@  0C OR B026 C! ;
+
+DECIMAL
+
+( NEEDS TIMER.ASM )
+( NEEDS PORTS.H )
+
+
+: TONE-ON    PORTA C@  08 OR      PORTA C!   ;
+: TONE-OFF   PORTA C@  08 NOT AND PORTA C!   ;
+
+: TONE ( n --)     TONE-ON  TICKS  TONE-OFF ;
+
+: WIST    3 TICKS  ;
+: DIT     3 TONE WIST ;
+: DAH     9 TONE WIST ;
+: BEEP    1 TONE ;
+
+: ALARM   ( speed -- )
+       2 MAX
+       BEGIN
+         DUP TONE  DUP 2/ TICKS
+         ?TERMINAL
+       UNTIL DROP ;
+
+ : .-           DIT DAH WIST  ;
+ : ..._         DIT DIT DIT DAH  WIST  ;
+
+ : ALARM1    BEGIN  .-   ?TERMINAL UNTIL ;
+ : ALARM2    BEGIN  ..._ ?TERMINAL UNTIL ;
+
+: HORN   100 TONE ;
+

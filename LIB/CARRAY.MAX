@@ -1,0 +1,5 @@
+( CARRAY.MAX    where space is a problem  18JAN94 FOX )
+HEX
+: CARRAY: ( n -- <name> )
+       <BUILDS  ALLOT  DOES> + ;
+

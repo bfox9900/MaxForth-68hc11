@@ -1,0 +1,18 @@
+( BAUDS.MAX  assumes that you have an 8.00 Mhz crystal  )
+( Also assumes that you don't want to touch the prescaler register)
+( This means it can only generate BAUD rates that are from 75 to 9600)
+
+HEX
+: BAUD!  ( c -- ) B02B C! ;    ( B02B is the I/O address of )
+                               ( the divisor register)
+DECIMAL
+
+: BAUD  ( n -- )
+        9600 SWAP /  1-
+        0 8 ROT MIN MAX             ( calculate the divisor )
+        [ HEX ] 30 OR ;            ( OR it with the pre-scaler value)
+(        BAUD! ; )
+
+DECIMAL                  ( switch back to decimal )
+
+

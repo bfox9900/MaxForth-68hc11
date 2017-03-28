@@ -1,0 +1,4 @@
+( CLIP.MAX     25JAN93  FOX)
+
+: CLIP  ROT MIN MAX ;
+

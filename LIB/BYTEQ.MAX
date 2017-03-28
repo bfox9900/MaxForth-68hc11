@@ -1,0 +1,39 @@
+( Circular byte Q data structure with CODE word operators )
+
+FORTH DEFINITIONS
+HEX
+
+: QUEUE: ( n -- <text>)
+    <BUILDS
+        DUP  10 MOD ABORT" Queue size must be power of 2"
+        DUP 100 >   ABORT" Max size is 256 bytes"
+        0 C,          ( head pointer )
+        0 C,          ( tail  pointer )
+        0 C,          ( byte counter  ) ( un-used to date )
+        DUP 1- C,     ( mask value    )
+        ALLOT         ( data          )
+
+     DOES>  ;        ( just leave the address of this data structure)
+
+( SEE: QC.ASM for source code for these words.
+HEX
+CODE QC@  ( -- c )   ( 0 if no char )
+        CD C, EE C, 00 C, 4F C, E6 C,
+        01 C, E1 C, 00 C, 26 C, 05 C,
+            ( FF C, FF C, )             ( patch made for tests )
+        CC C, 00 C, 00 C, 20 C, 08 C,
+        5C C, E4 C, 03 C, E7 C, 01 C,
+        3A C, E6 C, 04 C, 7E C, FE47 ,
+END-CODE
+DECIMAL
+
+HEX
+CODE QC!  ( c --)
+        CD C, EE C, 00 C, E6 C, 00 C,
+        5C C, E4 C, 03 C, E7 C, 00 C,
+        3A C, 18 C, E6 C, 03 C, E7 C,
+        04 C, 7E C, FC93 ,
+END-CODE
+DECIMAL
+
+: INITQ  ( Q-adr -- )  3 ERASE ;

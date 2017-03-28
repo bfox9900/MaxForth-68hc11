@@ -1,0 +1,45 @@
+( MINUTES.MAX   real time delay words    29 Jan93 Fox )
+( for use with MK48T08b ram chip with internal clock )
+
+
+
+( ** Needs CLOCK.MAX ** )
+
+
+HEX
+
+: 4SHIFT ( 00x0 -- 000x)  2/ 2/ 2/ 2/ ;
+
+: BCD->S ( bcd -- n )
+       DUP 0F AND                      ( mask units number )
+       SWAP F0 AND                     ( swap & mask Tens number)
+       SHIFT4  0A *                    ( shift Tens # 4 right, time 10 )
+       ( units tens ) + ;              ( add both together )
+
+DECIMAL
+: TIME->INT ( hr min sec -- d)         ( d is total seconds as 32bit#)
+       BCD->S >R                       ( push seconds integer )
+       BCD->S 60 * >R                  ( minutes int. * 60 also pushed)
+       BCD->S 3600 UM* ( d)            ( hrs int.*3600 ->32bit int )
+       R> 0 D+                         ( POP seconds, 0 added means 32bit & add)
+       R> 0 D+ ;                       ( same thing to secs. and add to total)
+
+: TimeSec@ ( -- d)  TIME@ TIME->INT ;
+
+: SECONDS ( n -- )
+        0
+        TimeSec@
+        BEGIN
+              2DUP TimeSec@ D-
+        UNTIL
+        2DROP ;
+
+: MINUTES ( n -- )
+        min C@ BCD->S >R                      ( get initial time & push to R)
+        BEGIN
+              DUP  min C@ BCD->S R@ - ABS =
+        UNTIL
+        R> 2DROP ;
+
+
+

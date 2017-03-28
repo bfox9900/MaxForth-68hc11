@@ -1,0 +1,9 @@
+( CHAR.MAX   {formerly ASCII} compile character as a literal 22sep92)
+( ANSI "FIED"   03JUL95)
+
+DECIMAL
+
+: CHAR    ( -- <c>)  BL WORD 1+  C@ ;
+
+: [CHAR]  ( -- <c>)  ?COMP CHAR  [COMPILE] LITERAL ;  IMMEDIATE
+

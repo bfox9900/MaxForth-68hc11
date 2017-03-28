@@ -1,0 +1,29 @@
+( name: defer.max                      )
+( date: 21feb95                        )
+( copyright brian j. fox *c* 1995      )
+( All rights reserved                  )
+( dependancies: none                                                   )
+(                                                                      )
+( revision                                                             )
+
+( all deferred words start out with a crash word.)
+: CRASH    ( -- )  -1 ABORT" undefined deferred word" ;
+
+
+: DEFER
+       <BUILDS ['] CRASH CFA ,         ( compile the cfa of crash)
+       DOES> @ EXECUTE ;               ( fetch the internal CFA & run)
+
+( here I am using the MPE syntax for for deferred words. )
+: ASSIGN  ( -- <word>  adr ) '   CFA ;
+: TO-DO   ( cfa -- <word> )  '  @ ! ;
+
+( example:                                                              )
+(                                                                       )
+( DEFER BAR                         \ create the deferred word BAR      )
+(                                   \ it does nothing but crash         )
+
+( : FOO   ." I am Foo!" ;           \ define a word called FOO          )
+
+( ASSIGN FOO  TO-DO  BAR           \ Bar will now do what FOO does     )
+

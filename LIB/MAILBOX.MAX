@@ -1,0 +1,42 @@
+( MAILBOX.MAX simple mailbox implementation for Fox Multi-tasker.  04JAN94)
+( base on article in F.D. vol7 #4 by R. W. Dobbins. Columbia ML.
+DECIMAL
+
+( Concept: do not "SEND" a new message until the mailbox is cleared by
+(          "RECIEVE"
+( Assumes that LOOP and UNTIL are re-defined to include context switch
+(   In it's simplest form it allows a transputer like com link between
+( FORTH tasks.
+
+
+( This word can be replaced by the  phrase:  CREATE ccccccc  0 ,  )
+: MAILBOX:  ( -- ) <BUILDS 0 ,  DOES>  ;  ( clears when created)
+
+: SEND  ( n mailbox --)  BEGIN  DUP @ 0= UNTIL  ! ;
+
+: RECIEVE ( mailbox -- n )  BEGIN  DUP @ ?DUP UNTIL  0 ROT ! ;
+
+
+( Possibilties:
+( 1.  Send returns a flag to indicate how many waits before message was    )
+( recieved. This would allow a "sending" task to judge the work load of the)
+( recieving task.                                                          )
+( 2.  Create a mailbox user variable in each task. Modify SEND RECEIVE to  )
+(     use LOCAL @ and the TASK name Example:  halt_msg PRINTER_TSK SEND    )
+
+( Experimental SEND with sucess failure feature
+(  1000 CONSTANT mail-attemps
+
+( : SEND/REPLY  ( n mailbox -- ? )
+(   0
+(   mail-attemps 1
+(   DO  OVER @ 0=
+(       IF DROP I  LEAVE
+(       THEN
+(   LOOP
+(   DUP 0= ABORT" message not recieved in time!" ;
+(   ( # of attemps )
+
+
+
+

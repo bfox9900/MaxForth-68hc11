@@ -1,0 +1,38 @@
+( RAMVARS.MAX   allows variables in RAM.  from TCJ mag. Matthew Mercaldo )
+( but allows code in ROM @ $2000 )
+
+HEX
+
+
+
+ 6000 H/C                 ( Place heads at bottom of U2, #32K mem. chip)
+
+                          ( FORTH Heads now start at 6000  HEX )
+
+
+
+
+2004 DP !                       ( start compiling at HEX 2004)
+
+9  48 ! ( WIDTH ! )             ( set dictionary max width to 9 chars)
+
+HERE 4000 FF FILL               ( fill ROM space with FF hex)
+
+
+0400 CONSTANT RAM-START     ( ram must be in BATTERY ram area )
+
+RAM-START 1B00 +  CONSTANT RAM-LIMIT
+
+VARIABLE 'RAM            RAM-START 'RAM !
+
+: THERE  'RAM @ ;
+
+: RESET-RAM   RAM-START 'RAM ! ;
+
+: ALLOT-RAM  ( n -- )
+       'RAM +!
+       RAM-LIMIT THERE U< ABORT" OUT OF RAM SPACE!" ;
+
+: BYTES  ( n -- <name> )   THERE  CONSTANT  ALLOT-RAM ;
+: BYTE   (   -- <name> )   1 BYTES ;
+

@@ -1,0 +1,12 @@
+( INPUT.MAX   allows #input like basic )
+
+: NUMBER? ( $ -- ?)   DUP 0 0 ROT CONVERT SWAP DROP ROT 1+ = ;
+
+: #IN  ( -- n )
+       BEGIN
+       $IN
+       NUMBER?
+       WHILE
+         ." redo " DROP
+       REPEAT ;
+

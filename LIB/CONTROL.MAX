@@ -1,0 +1,5 @@
+( CONTROL.MAX      uses the ^ operator like the word ascii 22sep92)
+DECIMAL
+: ^   ( -- <c>)
+       BL WORD 1+  C@  31 AND
+       STATE @ IF [COMPILE] LITERAL THEN  ;  IMMEDIATE

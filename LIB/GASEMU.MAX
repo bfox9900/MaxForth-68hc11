@@ -1,0 +1,57 @@
+( VIP 2x40 display panel  EMULATOR for VT100   18AUG84 FOX )
+DECIMAL
+
+( data port= PORTB
+( busy line= PORTA bit 0
+( strobe   = PORTD bit 7  {strobe B signal from PRU chip})
+
+FORTH DEFINITIONS
+
+: GASEMU.MAX ;
+
+DECIMAL
+
+: ASCII   ( -- <c>)
+       BL WORD 1+  C@
+       STATE @ IF [COMPILE] LITERAL THEN  ;  IMMEDIATE
+
+ 27 CONSTANT ESC
+
+( ANSI DEFINITIONS for VT100 control )
+
+: .PARM  0 <# ( DECIMAL) #S  #> TYPE ;
+
+: ESC[  ( -- )                             ( start control sequence)
+         ESC     EMIT ASCII [ EMIT ;
+
+: XY   ( row col -- )      (  off set everything 20 spaces by 1 space )
+        20 + SWAP 1+
+        ESC[
+        ( row)  .PARM
+        ASCII ; EMIT
+        ( col)  .PARM
+        ASCII H EMIT ;
+
+: HOME 0 0 XY ;
+
+: <PAGE>  ESC[
+        ASCII 2 EMIT
+        ASCII J EMIT ;
+
+: PAGE  <PAGE> HOME ;    ( erase display & cursor home )
+
+( dummy words to keep the word set consistent )
+: CURS-OFF     7 EMIT ;
+: CURS-ON      7 EMIT ;
+( : BLINK:       0B GASEMIT ;
+( : ;BLINK       0C GASEMIT ;
+: SCROLL       7 EMIT ;
+: CRAWL        7 EMIT  ;
+: GASRST       7 EMIT  ;
+: DIM          7 EMIT  ;
+: NORMAL       7 EMIT  ;
+: BRIGHT       7 EMIT  ;
+: >PORT ;
+: >GAS  ;
+
+

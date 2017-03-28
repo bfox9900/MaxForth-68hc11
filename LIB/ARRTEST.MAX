@@ -1,0 +1,15 @@
+( array test   Forth vs code )
+
+DECIMAL 10000 CONSTANT ASIZE
+
+ASIZE ARRAY: []Q
+
+: FILLIT
+    ASIZE 0  DO   I I []Q !        LOOP ;
+
+: BACKFILL
+     0 ASIZE DO   I I []Q !    -1 +LOOP ;
+
+: SEEIT
+    ASIZE 0  DO  I []Q @ . ." , "  LOOP ;
+
